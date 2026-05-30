@@ -1,4 +1,10 @@
-# SkyBlock Progression
+# FrogPixel Skyblock
+**You can test the latest builds of the fabric plugin on our live server, <br>⚠️ Warning all progress will be reset often because this is a test server.** <br>
+* *play.frogpixel.com*
+* *default port 25565*
+
+ For the discord and other information goto: `https://frogpixel.com/`
+##
 
 A server-side only Fabric mod that brings a complete, classic SkyBlock experience—inspired by Noobcrew's original map layout—directly to vanilla clients, WIP a fully integrated resource progression system inspired by *Ex Nihilo*.
 
