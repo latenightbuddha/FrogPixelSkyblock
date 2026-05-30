@@ -1,0 +1,16 @@
+{
+  "type": "frogpixelskyblock:skyblock_dimension_type",
+  "generator": {
+    "type": "minecraft:flat",
+    "seed": 0,
+    "settings": {
+      "layers": [
+        {
+          "height": 1,
+          "block": "minecraft:air"
+        }
+      ],
+      "biome": "minecraft:plains"
+    }
+  }
+}
