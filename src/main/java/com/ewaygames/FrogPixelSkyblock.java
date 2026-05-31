@@ -153,6 +153,11 @@ public class FrogPixelSkyblock implements DedicatedServerModInitializer {
 			return player.level().getServer().getLevel(this.getKey());
 		}
 
+		public static ServerLevel getSkyblock(ServerPlayer player) {
+			return ModDimensions.SKY.getLevel(player);
+		}
+
+
 		public static Optional<ModDimensions> fromId(String id) {
 			return Arrays.stream(values())
 					.filter(d -> d.id.equals(id))
