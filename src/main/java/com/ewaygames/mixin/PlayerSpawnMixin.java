@@ -22,7 +22,8 @@ public class PlayerSpawnMixin {
     @Inject(method = "placeNewPlayer", at = @At("TAIL"))
     private void forcePlayerToSkyblockDimensionOnJoin(Connection connection, ServerPlayer player, CommonListenerCookie cookie, CallbackInfo ci) {
         if (player.level().dimension() == Level.OVERWORLD) {
-            executeSkyblockReroute(player);
+            //FrogPixelSkyblock.executeSkyblockReroute(player);
+            com.ewaygames.FrogPixelSkyblock.queueDelayedTeleport(player, 10);
         }
     }
 
@@ -40,20 +41,8 @@ public class PlayerSpawnMixin {
 
         // If the game tried to dump their dead soul back into the vanilla Overworld, catch them!
         if (newPlayerInstance.level().dimension() == Level.OVERWORLD) {
-            executeSkyblockReroute(newPlayerInstance);
+           FrogPixelSkyblock.executeSkyblockReroute(newPlayerInstance);
         }
-    }
-
-    // ROUTING LOGIC
-    @Unique
-    private void executeSkyblockReroute(ServerPlayer player) {
-        FrogPixelSkyblock.movePlayerToDimension(
-                player,
-                FrogPixelSkyblock.ModDimensions.getSkyblock(player),
-                new net.minecraft.world.phys.Vec3(0.5, 65.0, 0.5),
-                new net.minecraft.world.phys.Vec2(0, 0),
-                false
-        );
     }
 }
 

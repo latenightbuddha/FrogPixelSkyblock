@@ -11,8 +11,24 @@ public class FrogPixelSkyblock_Config {
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("FrogPixelSkyblock.toml");
 
     public static void loadConfig() {
+        System.out.println("[FrogPixelSkyblock] Initializing Skyblock Configuration");
 
         try {
+            // 1. Check if the configuration file is missing
+            if (Files.notExists(CONFIG_PATH)) {
+                System.out.println("[FrogPixelSkyblock] Config file not found! Generating default file...");
+
+                // Ensure the parent directory structure exists (e.g., if the 'config' folder itself was wiped)
+                Path parentDir = CONFIG_PATH.getParent();
+                if (parentDir != null && Files.notExists(parentDir)) {
+                    Files.createDirectories(parentDir);
+                }
+
+                // Write the default settings down to disk
+                writeDefaultConfig();
+            }
+
+            // 2. Guaranteed safe to read now without throwing a NoSuchFileException
             List<String> lines = Files.readAllLines(CONFIG_PATH);
 
             String currentSection = "";
@@ -56,7 +72,6 @@ public class FrogPixelSkyblock_Config {
                     cleanValue = cleanValue.trim().toLowerCase();
 
                     if (cleanValue.isEmpty() || cleanValue.equals("]")) continue;
-
                 }
             }
         } catch (IOException e) {
@@ -67,9 +82,16 @@ public class FrogPixelSkyblock_Config {
 
     private static void writeDefaultConfig() throws IOException {
         List<String> defaults = List.of(
-                "# FrogPixel Skyblock Configuration"
+                "# FrogPixel Skyblock Configuration",
+                "",
+                "[spawn]",
+                "spawn_x = 0.5",
+                "spawn_y = 101.0",
+                "spawn_z = 0.5",
+                "",
+                "[features]",
+                "enable_void_loop = true"
         );
         Files.write(CONFIG_PATH, defaults);
     }
-
 }

@@ -19,6 +19,7 @@ import net.minecraft.resources.Identifier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.spongepowered.asm.mixin.Unique;
 
 import java.util.*;
 
@@ -32,7 +33,7 @@ public class FrogPixelSkyblock implements DedicatedServerModInitializer {
 
 	public static final String SKY_DIM = MOD_ID + ":skyblock_dimension";
 
-	//private static final Map<UUID, Integer> TICK_COUNTER = new HashMap<>();
+	private static final List<DelayedTeleport> delayedTeleports = new ArrayList<>();
 
 	@Override
 	public void onInitializeServer() {
@@ -43,6 +44,24 @@ public class FrogPixelSkyblock implements DedicatedServerModInitializer {
 			System.out.println("[FrogPixelSkyblock] Initializing Skyblock Configuration");
 			FrogPixelSkyblock_Config.loadConfig();
 		}
+
+		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			Iterator<DelayedTeleport> iterator = delayedTeleports.iterator();
+			while (iterator.hasNext()) {
+				DelayedTeleport task = iterator.next();
+				task.ticksRemaining--;
+
+				if (task.ticksRemaining <= 0) {
+					ServerPlayer player = task.player;
+
+					// in the server's active player list to make sure they are still online.
+					if (server.getPlayerList().getPlayer(player.getUUID()) != null) {
+						executeSkyblockReroute(player);
+					}
+					iterator.remove();
+				}
+			}
+		});
 
 		// This fires as soon as a player joins
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
@@ -128,6 +147,22 @@ public class FrogPixelSkyblock implements DedicatedServerModInitializer {
 		});
 	}
 
+	// A helper method you can call from your Login Mixin to queue a player
+	public static void queueDelayedTeleport(ServerPlayer player, int ticks) {
+		delayedTeleports.add(new DelayedTeleport(player, ticks));
+	}
+
+	// Small container class to hold our delay data
+	private static class DelayedTeleport {
+		final ServerPlayer player;
+		int ticksRemaining;
+
+		DelayedTeleport(ServerPlayer player, int ticks) {
+			this.player = player;
+			this.ticksRemaining = ticks;
+		}
+	}
+
 	public enum ModDimensions {
 		OVERWORLD("minecraft:overworld", Level.OVERWORLD),
 		NETHER("minecraft:the_nether", Level.NETHER),
@@ -173,6 +208,17 @@ public class FrogPixelSkyblock implements DedicatedServerModInitializer {
 		sendServerMessage(player, reason);
 
 		LOGGER.info("Player {} was kicked: {}", player.getName().getString(), reason);
+	}
+
+	@Unique
+	public static void executeSkyblockReroute(ServerPlayer player) {
+		FrogPixelSkyblock.movePlayerToDimension(
+				player,
+				FrogPixelSkyblock.ModDimensions.getSkyblock(player),
+				new net.minecraft.world.phys.Vec3(0.5, 65.0, 0.5),
+				new net.minecraft.world.phys.Vec2(0, 0),
+				false
+		);
 	}
 
 	public static void sendServerMessage(ServerPlayer player, String message) {
