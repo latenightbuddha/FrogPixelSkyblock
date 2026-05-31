@@ -8,7 +8,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
-import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.util.RandomSource;
 import org.spongepowered.asm.mixin.Dynamic;
 import org.spongepowered.asm.mixin.Mixin;
@@ -38,11 +37,6 @@ public class TrialSpawnerEraserMixin {
 
             if (isSkyblock) {
                 // using the helper method built into StructureTemplate
-
-                //BoundingBox box = BoundingBox.fromCorners(targetPos, targetPos.offset(15, 15, 15));
-
-                //BlockPos minPos = new BlockPos(box.minX(), box.minY(), box.minZ());
-                //BlockPos maxPos = new BlockPos(box.maxX(), box.maxY(), box.maxZ());
 
                 BlockPos minPos = targetPos.offset(-32, -16, -32);
                 BlockPos maxPos = targetPos.offset(32, 32, 32);

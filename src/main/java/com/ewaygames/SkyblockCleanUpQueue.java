@@ -1,11 +1,16 @@
 package com.ewaygames;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.Potion;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -13,6 +18,7 @@ import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.entity.EntityType;
 
+import java.util.List;
 import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -37,8 +43,25 @@ public class SkyblockCleanUpQueue {
             Items.MUSIC_DISC_13, Items.MUSIC_DISC_CAT, Items.MUSIC_DISC_OTHERSIDE,
             Items.IRON_INGOT, Items.GOLD_INGOT, Items.DIAMOND, Items.GUNPOWDER,
             Items.STRING, Items.ROTTEN_FLESH, Items.BREAD, Items.WHEAT,
-            Items.MELON_SEEDS, Items.PUMPKIN_SEEDS, Items.COAL, Items.REDSTONE
+            Items.MELON_SEEDS, Items.PUMPKIN_SEEDS, Items.COAL, Items.REDSTONE,
+
+            Items.TOTEM_OF_UNDYING, Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION
     };
+
+    // 3. Registry collection of strictly beneficial potion effects for skyblock utility
+    private static final List<Holder<Potion>> HELPFUL_POTIONS = List.of(
+            Potions.HEALING,
+            Potions.STRONG_HEALING,
+            Potions.REGENERATION,
+            Potions.LONG_REGENERATION,
+            Potions.SWIFTNESS,
+            Potions.LONG_SWIFTNESS,
+            Potions.STRENGTH,
+            Potions.LONG_STRENGTH,
+            Potions.FIRE_RESISTANCE,
+            Potions.LONG_FIRE_RESISTANCE,
+            Potions.NIGHT_VISION
+    );
 
     public record ModificationTask(ResourceKey<Level> dimension, BlockPos pos, boolean isTrialSpawner) {}
     private static final Queue<ModificationTask> TASK_QUEUE = new ConcurrentLinkedQueue<>();
@@ -65,7 +88,7 @@ public class SkyblockCleanUpQueue {
 
             if (level.hasChunkAt(targetPos)) {
                 if (!task.isTrialSpawner()) {
-                    // 👉 REPLACE VAULT WITH CHEST
+                    // REPLACE VAULT WITH CHEST
                     level.setBlock(targetPos, Blocks.CHEST.defaultBlockState(), 3);
                     BlockEntity chestTile = level.getBlockEntity(targetPos);
 
@@ -87,16 +110,25 @@ public class SkyblockCleanUpQueue {
                                 stackSize = 1 + RANDOM.nextInt(3); // 1-3 items
                             }
 
+                            // Generate the itemstack
+                            ItemStack lootStack = new ItemStack(randomItem, stackSize);
+
+                            // 👈 POTION CONTENT PROCESSING BLOCK
+                            // If the item rolled is a potion variant, inject a useful buff data component
+                            if (randomItem == Items.POTION || randomItem == Items.SPLASH_POTION || randomItem == Items.LINGERING_POTION) {
+                                Holder<Potion> randomBuff = HELPFUL_POTIONS.get(RANDOM.nextInt(HELPFUL_POTIONS.size()));
+                                lootStack.set(DataComponents.POTION_CONTENTS, new PotionContents(randomBuff));
+                            }
+
                             // Choose a random available slot inside the chest container boundary (0 to 26)
                             int randomSlot = RANDOM.nextInt(chest.getContainerSize());
 
-                            // If the slot is empty, drop our item stack straight inside
+                            // If the slot is empty or occupied, place the stack inside safely
                             if (chest.getItem(randomSlot).isEmpty()) {
-                                chest.setItem(randomSlot, new ItemStack(randomItem, stackSize));
+                                chest.setItem(randomSlot, lootStack);
                             } else {
-                                // If slot was hit already, retry once in the next slot loop organically
                                 chest.removeItemNoUpdate(randomSlot);
-                                chest.setItem(randomSlot, new ItemStack(randomItem, stackSize));
+                                chest.setItem(randomSlot, lootStack);
                             }
                         }
 
@@ -105,7 +137,7 @@ public class SkyblockCleanUpQueue {
                         System.out.println("[FrogPixelSkyblock] Successfully transformed Vault into custom scratch item chest at: " + targetPos);
                     }
                 } else {
-                    // 👉 REPLACE TRIAL SPAWNER WITH VANILLA BREAKABLE ONE
+                    // REPLACE TRIAL SPAWNER WITH VANILLA BREAKABLE ONE
                     level.setBlock(targetPos, Blocks.SPAWNER.defaultBlockState(), 3);
                     BlockEntity newBlockEntity = level.getBlockEntity(targetPos);
 
