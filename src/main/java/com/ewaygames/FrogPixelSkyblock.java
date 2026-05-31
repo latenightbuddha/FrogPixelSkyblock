@@ -51,13 +51,27 @@ public class FrogPixelSkyblock implements DedicatedServerModInitializer {
 				DelayedTeleport task = iterator.next();
 				task.ticksRemaining--;
 
-				if (task.ticksRemaining <= 0) {
-					ServerPlayer player = task.player;
+				ServerPlayer player = task.player;
 
-					// in the server's active player list to make sure they are still online.
-					if (server.getPlayerList().getPlayer(player.getUUID()) != null) {
+				// Verify the player is still active and online
+				if (server.getPlayerList().getPlayer(player.getUUID()) != null) {
+
+					if (task.ticksRemaining <= 0) {
+						// TIME IS UP: Reset all momentum and drop them safely on the platform
+						player.fallDistance = 0.0F;
+						player.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+
+						// Route them to the Skyblock platform
 						executeSkyblockReroute(player);
+
+						iterator.remove();
+					} else {
+						// STILL WAITING: Freeze the player in the air, so they don't fall during the delay
+						player.fallDistance = 0.0F;
+						player.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
 					}
+				} else {
+					// Player disconnected during the loading screen, clean up the task
 					iterator.remove();
 				}
 			}
