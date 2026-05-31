@@ -13,7 +13,7 @@
 	"icon": "assets/modid/icon.png",
 	"environment": "server",
 	"entrypoints": {
-		"server": [
+		"main": [
           "com.ewaygames.FrogPixelSkyblock"
 		]
 	},

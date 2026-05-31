@@ -1,6 +1,6 @@
 package com.ewaygames;
 
-import net.fabricmc.api.DedicatedServerModInitializer;
+import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
@@ -23,7 +23,7 @@ import org.spongepowered.asm.mixin.Unique;
 
 import java.util.*;
 
-public class FrogPixelSkyblock implements DedicatedServerModInitializer {
+public class FrogPixelSkyblock implements ModInitializer {
 	public static final String MOD_ID = "frogpixelskyblock";
 
 	// This logger is used to write text to the console and the log file.
@@ -36,7 +36,7 @@ public class FrogPixelSkyblock implements DedicatedServerModInitializer {
 	private static final List<DelayedTeleport> delayedTeleports = new ArrayList<>();
 
 	@Override
-	public void onInitializeServer() {
+	public void onInitialize() {
 
 		// Triggers when running under strict dedicated production server conditions
 		if (FabricLoader.getInstance().getEnvironmentType() == net.fabricmc.api.EnvType.SERVER)
@@ -159,12 +159,22 @@ public class FrogPixelSkyblock implements DedicatedServerModInitializer {
 		ServerTickEvents.START_SERVER_TICK.register(server -> {
 
 		});
+
+		ServerTickEvents.END_SERVER_TICK.register(server ->
+		{
+			for (ServerLevel level : server.getAllLevels())
+			{
+				SkyblockCleanUpQueue.processQueue(level);
+			}
+		});
 	}
 
 	// A helper method you can call from your Login Mixin to queue a player
 	public static void queueDelayedTeleport(ServerPlayer player, int ticks) {
 		delayedTeleports.add(new DelayedTeleport(player, ticks));
 	}
+
+
 
 	// Small container class to hold our delay data
 	private static class DelayedTeleport {
