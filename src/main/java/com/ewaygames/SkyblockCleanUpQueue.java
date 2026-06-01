@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.entity.EntityType;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
@@ -40,12 +41,22 @@ public class SkyblockCleanUpQueue {
     private static final Item[] DUNGEON_LOOT_POOL = {
             Items.SADDLE, Items.NAME_TAG, Items.GOLDEN_APPLE, Items.ENCHANTED_GOLDEN_APPLE,
             Items.IRON_HORSE_ARMOR, Items.GOLDEN_HORSE_ARMOR, Items.DIAMOND_HORSE_ARMOR,
-            Items.MUSIC_DISC_13, Items.MUSIC_DISC_CAT, Items.MUSIC_DISC_OTHERSIDE,
-            Items.IRON_INGOT, Items.GOLD_INGOT, Items.DIAMOND, Items.GUNPOWDER,
-            Items.STRING, Items.ROTTEN_FLESH, Items.BREAD, Items.WHEAT,
-            Items.MELON_SEEDS, Items.PUMPKIN_SEEDS, Items.COAL, Items.REDSTONE,
+            Items.IRON_INGOT, Items.GOLD_INGOT, Items.DIAMOND, Items.GUNPOWDER, Items.STRING,
+            Items.ROTTEN_FLESH, Items.BREAD, Items.WHEAT, Items.MELON_SEEDS, Items.PUMPKIN_SEEDS,
+            Items.COAL, Items.REDSTONE, Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION,
 
-            Items.TOTEM_OF_UNDYING, Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION
+            Items.TOTEM_OF_UNDYING, Items.ELYTRA, Items.TRIDENT, Items.RECOVERY_COMPASS,
+            Items.DISC_FRAGMENT_5, Items.DRAGON_BREATH, Items.DRAGON_HEAD, Items.DRAGON_EGG,
+
+            Items.BREEZE_ROD, Items.SHULKER_SHELL, Items.BUNDLE, Items.SPYGLASS
+    };
+
+    private static final Item[] DUNGEON_DISC_POOL = {
+            Items.MUSIC_DISC_13, Items.MUSIC_DISC_CAT, Items.MUSIC_DISC_BLOCKS, Items.MUSIC_DISC_CHIRP,
+            Items.MUSIC_DISC_FAR, Items.MUSIC_DISC_MALL, Items.MUSIC_DISC_MELLOHI, Items.MUSIC_DISC_STAL,
+            Items.MUSIC_DISC_STRAD, Items.MUSIC_DISC_WARD, Items.MUSIC_DISC_11, Items.MUSIC_DISC_WAIT,
+            Items.MUSIC_DISC_OTHERSIDE, Items.MUSIC_DISC_PIGSTEP, Items.MUSIC_DISC_RELIC,
+            Items.MUSIC_DISC_PRECIPICE, Items.MUSIC_DISC_CREATOR, Items.MUSIC_DISC_CREATOR_MUSIC_BOX
     };
 
     // 3. Registry collection of strictly beneficial potion effects for skyblock utility
@@ -69,6 +80,8 @@ public class SkyblockCleanUpQueue {
     public static void enqueue(ResourceKey<Level> dimension, BlockPos pos, boolean isTrialSpawner) {
         TASK_QUEUE.add(new ModificationTask(dimension, pos, isTrialSpawner));
     }
+
+    private static final List<Item> DISC_LOOKUP = Arrays.asList(DUNGEON_DISC_POOL);
 
     @SuppressWarnings("deprecation")
     public static void processQueue(ServerLevel level) {
@@ -100,18 +113,49 @@ public class SkyblockCleanUpQueue {
                             // Determine a random number of items to put in this specific chest (e.g., 3 to 7 slots populated)
                             int itemsToPlace = 3 + RANDOM.nextInt(5);
 
+                            boolean hasDiscAlready = false;
+
+                            for (int o = 0; o < chest.getContainerSize(); o++) {
+                                if (DISC_LOOKUP.contains(chest.getItem(o).getItem())) {
+                                    hasDiscAlready = true;
+                                    break;
+                                }
+                            }
+
                             for (int count = 0; count < itemsToPlace; count++) {
-                                // Select a completely random item profile from our array
-                                Item randomItem = DUNGEON_LOOT_POOL[RANDOM.nextInt(DUNGEON_LOOT_POOL.length)];
+
+                                Item randomItem;
+
+                                if (!hasDiscAlready && RANDOM.nextInt(4) == 0) {
+                                    randomItem = DUNGEON_DISC_POOL[RANDOM.nextInt(DUNGEON_DISC_POOL.length)];
+                                } else {
+                                    randomItem = DUNGEON_LOOT_POOL[RANDOM.nextInt(DUNGEON_LOOT_POOL.length)];
+                                }
 
                                 // Scale individual stack counts contextually (e.g., resources stack, gear doesn't)
                                 int stackSize = 1;
-                                if (randomItem == Items.IRON_INGOT || randomItem == Items.GOLD_INGOT || randomItem == Items.COAL) {
+                                if (randomItem == Items.IRON_INGOT || randomItem == Items.GOLD_INGOT || randomItem == Items.COAL)
+                                {
                                     stackSize = 1 + RANDOM.nextInt(4); // 1-4 items
-                                } else if (randomItem == Items.GUNPOWDER || randomItem == Items.STRING || randomItem == Items.ROTTEN_FLESH) {
+                                }
+                                else if (randomItem == Items.GUNPOWDER || randomItem == Items.STRING || randomItem == Items.ROTTEN_FLESH) {
                                     stackSize = 1 + RANDOM.nextInt(5); // 1-5 items
-                                } else if (randomItem == Items.BREAD || randomItem == Items.WHEAT) {
+                                }
+                                else if (randomItem == Items.BREAD || randomItem == Items.WHEAT) {
                                     stackSize = 1 + RANDOM.nextInt(3); // 1-3 items
+                                }
+                                else if (randomItem == Items.DRAGON_BREATH) {
+                                    stackSize = 1 + RANDOM.nextInt(3);
+                                }
+                                else if (randomItem == Items.DISC_FRAGMENT_5) {
+                                    stackSize = 1 + RANDOM.nextInt(10);
+                                }
+                                else if (randomItem == Items.BREEZE_ROD) {
+                                    stackSize = 1 + RANDOM.nextInt(2);
+                                }
+
+                                if (DISC_LOOKUP.contains(randomItem)) {
+                                    stackSize = 1;
                                 }
 
                                 // Generate the itemstack
@@ -152,18 +196,40 @@ public class SkyblockCleanUpQueue {
                             int itemsToPlace = 3 + RANDOM.nextInt(6);
                             int itemsPlaced = 0;
 
+                            boolean hasDiscAlready = false;
+
                             // Keep rolling until we satisfy our target item slots cleanly
                             while (itemsPlaced < itemsToPlace) {
 
-                                Item randomItem = DUNGEON_LOOT_POOL[RANDOM.nextInt(DUNGEON_LOOT_POOL.length)];
+                                Item randomItem;
+                                if (!hasDiscAlready && RANDOM.nextInt(4) == 0) {
+                                    randomItem = DUNGEON_DISC_POOL[RANDOM.nextInt(DUNGEON_DISC_POOL.length)];
+                                } else {
+                                    randomItem = DUNGEON_LOOT_POOL[RANDOM.nextInt(DUNGEON_LOOT_POOL.length)];
+                                }
 
                                 int stackSize = 1;
                                 if (randomItem == Items.IRON_INGOT || randomItem == Items.GOLD_INGOT || randomItem == Items.COAL) {
                                     stackSize = 1 + RANDOM.nextInt(4);
-                                } else if (randomItem == Items.GUNPOWDER || randomItem == Items.STRING || randomItem == Items.ROTTEN_FLESH) {
+                                }
+                                else if (randomItem == Items.GUNPOWDER || randomItem == Items.STRING || randomItem == Items.ROTTEN_FLESH) {
                                     stackSize = 1 + RANDOM.nextInt(5);
-                                } else if (randomItem == Items.BREAD || randomItem == Items.WHEAT) {
+                                }
+                                else if (randomItem == Items.BREAD || randomItem == Items.WHEAT) {
                                     stackSize = 1 + RANDOM.nextInt(3);
+                                }
+                                else if (randomItem == Items.DRAGON_BREATH) {
+                                    stackSize = 1 + RANDOM.nextInt(3);
+                                }
+                                else if (randomItem == Items.DISC_FRAGMENT_5) {
+                                    stackSize = 1 + RANDOM.nextInt(10);
+                                }
+                                else if (randomItem == Items.BREEZE_ROD) {
+                                    stackSize = 1 + RANDOM.nextInt(2);
+                                }
+
+                                if (DISC_LOOKUP.contains(randomItem)) {
+                                    stackSize = 1;
                                 }
 
                                 ItemStack lootStack = new ItemStack(randomItem, stackSize);
