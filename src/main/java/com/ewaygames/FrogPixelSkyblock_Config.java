@@ -8,6 +8,8 @@ import java.util.List;
 
 public class FrogPixelSkyblock_Config {
 
+    // Display structure block swapping messages.
+    public static final boolean verboseStructureConversionLogging = true;
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("FrogPixelSkyblock.toml");
 
     public static void loadConfig() {

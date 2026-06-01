@@ -1,11 +1,13 @@
 package com.ewaygames.mixin;
 
 import com.ewaygames.FrogPixelSkyblock;
+import com.ewaygames.StructureGenerator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -137,7 +139,51 @@ public class SkyblockSpawnMixin {
                                 chestEntity.setItem(19, new ItemStack(Items.STRING, 16));
                             }
 
-                            System.out.println("[FrogPixelSkyblock] 32x32 Skyblock orchard platform and starter chest successfully completed!");
+                            try {
+                                net.minecraft.core.BlockPos spawnCenter = new net.minecraft.core.BlockPos(0, 70, 0);
+
+                                // Estimate or dynamically get the width/length of your structure bounding box
+                                int sizeX = 60;
+                                int sizeZ = 60;
+                                int distanceOut = 80; // How many blocks of empty void you want between spawn and the mansion wall
+
+                                // NORTH: Faces South naturally. Pivot point stays top-left.
+                                net.minecraft.core.BlockPos northTarget = new net.minecraft.core.BlockPos(
+                                        spawnCenter.getX() - (sizeX / 2),
+                                        spawnCenter.getY() - 5,
+                                        spawnCenter.getZ() - distanceOut - sizeZ
+                                );
+
+                                // SOUTH: Rotated 180°. Flips the box completely.
+                                net.minecraft.core.BlockPos southTarget = new net.minecraft.core.BlockPos(
+                                        spawnCenter.getX() + (sizeX / 2),
+                                        spawnCenter.getY() - 5,
+                                        spawnCenter.getZ() + distanceOut + sizeZ
+                                );
+
+                                // EAST: Rotated 270° (Counter-clockwise 90). Sweeps the width into the Z axis.
+                                net.minecraft.core.BlockPos eastTarget  = new net.minecraft.core.BlockPos(
+                                        spawnCenter.getX() + distanceOut + sizeZ,
+                                        spawnCenter.getY() - 5,
+                                        spawnCenter.getZ() - (sizeX / 2)
+                                );
+
+                                // WEST: Rotated 90° (Clockwise 90).
+                                net.minecraft.core.BlockPos westTarget  = new net.minecraft.core.BlockPos(
+                                        spawnCenter.getX() - distanceOut - sizeZ,
+                                        spawnCenter.getY() - 5,
+                                        spawnCenter.getZ() + (sizeX / 2)
+                                );
+
+                                //TODO Fix the generation for these prefabs
+                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, northTarget, Rotation.CLOCKWISE_90);
+                                // StructureGenerator.spawnStructureNearSpawn("todo marine_temple", worldInstance, southTarget, Rotation.CLOCKWISE_180);
+                                // StructureGenerator.spawnStructureNearSpawn("todo sky_aircraft", worldInstance, eastTarget,  Rotation.COUNTERCLOCKWISE_90);
+                                // StructureGenerator.spawnStructureNearSpawn("todo unknown_prefab", worldInstance, westTarget,  Rotation.NONE);
+
+                            } catch (Exception e) {
+                                System.err.println("[FrogPixelSkyblock] Failed to generate the structure: " + e.getMessage());
+                            }
                         }
 
                         // Teleport the player safely onto the platform

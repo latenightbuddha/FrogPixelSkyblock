@@ -24,6 +24,8 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import static com.ewaygames.FrogPixelSkyblock_Config.verboseStructureConversionLogging;
+
 public class SkyblockCleanUpQueue {
 
     private static final Random RANDOM = new Random();
@@ -74,7 +76,9 @@ public class SkyblockCleanUpQueue {
             Potions.NIGHT_VISION
     );
 
-    public record ModificationTask(ResourceKey<Level> dimension, BlockPos pos, boolean isTrialSpawner) {}
+    public record ModificationTask(ResourceKey<Level> dimension, BlockPos pos, boolean isTrialSpawner) {
+    }
+
     private static final Queue<ModificationTask> TASK_QUEUE = new ConcurrentLinkedQueue<>();
 
     public static void enqueue(ResourceKey<Level> dimension, BlockPos pos, boolean isTrialSpawner) {
@@ -107,7 +111,8 @@ public class SkyblockCleanUpQueue {
                     BlockEntity chestTile = level.getBlockEntity(targetPos);
 
                     // Load from config, do we want full loot in the trial chests or normal chance?
-                    /* TEMP: TODO: add this to the config and load it */ boolean fullLootReward = true;
+                    /* TEMP: TODO: add this to the config and load it */
+                    boolean fullLootReward = true;
                     if (fullLootReward) {
                         if (chestTile instanceof ChestBlockEntity chest) {
                             // Determine a random number of items to put in this specific chest (e.g., 3 to 7 slots populated)
@@ -134,23 +139,17 @@ public class SkyblockCleanUpQueue {
 
                                 // Scale individual stack counts contextually (e.g., resources stack, gear doesn't)
                                 int stackSize = 1;
-                                if (randomItem == Items.IRON_INGOT || randomItem == Items.GOLD_INGOT || randomItem == Items.COAL)
-                                {
+                                if (randomItem == Items.IRON_INGOT || randomItem == Items.GOLD_INGOT || randomItem == Items.COAL) {
                                     stackSize = 1 + RANDOM.nextInt(4); // 1-4 items
-                                }
-                                else if (randomItem == Items.GUNPOWDER || randomItem == Items.STRING || randomItem == Items.ROTTEN_FLESH) {
+                                } else if (randomItem == Items.GUNPOWDER || randomItem == Items.STRING || randomItem == Items.ROTTEN_FLESH) {
                                     stackSize = 1 + RANDOM.nextInt(5); // 1-5 items
-                                }
-                                else if (randomItem == Items.BREAD || randomItem == Items.WHEAT) {
+                                } else if (randomItem == Items.BREAD || randomItem == Items.WHEAT) {
                                     stackSize = 1 + RANDOM.nextInt(3); // 1-3 items
-                                }
-                                else if (randomItem == Items.DRAGON_BREATH) {
+                                } else if (randomItem == Items.DRAGON_BREATH) {
                                     stackSize = 1 + RANDOM.nextInt(3);
-                                }
-                                else if (randomItem == Items.DISC_FRAGMENT_5) {
+                                } else if (randomItem == Items.DISC_FRAGMENT_5) {
                                     stackSize = 1 + RANDOM.nextInt(10);
-                                }
-                                else if (randomItem == Items.BREEZE_ROD) {
+                                } else if (randomItem == Items.BREEZE_ROD) {
                                     stackSize = 1 + RANDOM.nextInt(2);
                                 }
 
@@ -183,10 +182,12 @@ public class SkyblockCleanUpQueue {
 
                             chest.setChanged();
                             level.sendBlockUpdated(targetPos, Blocks.CHEST.defaultBlockState(), Blocks.CHEST.defaultBlockState(), 3);
-                            System.out.println("[FrogPixelSkyblock] Successfully transformed Vault into item chest at: " + targetPos);
+
+                            if (!verboseStructureConversionLogging) {
+                                System.out.println("[FrogPixelSkyblock] Successfully transformed Vault into item chest at: " + targetPos);
+                            }
                         }
-                    }
-                    else {
+                    } else {
                         // if full loot in the trial replaced chests (aka fullLootReward) was set to false
                         if (chestTile instanceof ChestBlockEntity chest) {
                             // Clear out any residual structure data or old items to guarantee a blank slate
@@ -211,20 +212,15 @@ public class SkyblockCleanUpQueue {
                                 int stackSize = 1;
                                 if (randomItem == Items.IRON_INGOT || randomItem == Items.GOLD_INGOT || randomItem == Items.COAL) {
                                     stackSize = 1 + RANDOM.nextInt(4);
-                                }
-                                else if (randomItem == Items.GUNPOWDER || randomItem == Items.STRING || randomItem == Items.ROTTEN_FLESH) {
+                                } else if (randomItem == Items.GUNPOWDER || randomItem == Items.STRING || randomItem == Items.ROTTEN_FLESH) {
                                     stackSize = 1 + RANDOM.nextInt(5);
-                                }
-                                else if (randomItem == Items.BREAD || randomItem == Items.WHEAT) {
+                                } else if (randomItem == Items.BREAD || randomItem == Items.WHEAT) {
                                     stackSize = 1 + RANDOM.nextInt(3);
-                                }
-                                else if (randomItem == Items.DRAGON_BREATH) {
+                                } else if (randomItem == Items.DRAGON_BREATH) {
                                     stackSize = 1 + RANDOM.nextInt(3);
-                                }
-                                else if (randomItem == Items.DISC_FRAGMENT_5) {
+                                } else if (randomItem == Items.DISC_FRAGMENT_5) {
                                     stackSize = 1 + RANDOM.nextInt(10);
-                                }
-                                else if (randomItem == Items.BREEZE_ROD) {
+                                } else if (randomItem == Items.BREEZE_ROD) {
                                     stackSize = 1 + RANDOM.nextInt(2);
                                 }
 
@@ -252,7 +248,10 @@ public class SkyblockCleanUpQueue {
 
                             chest.setChanged();
                             level.sendBlockUpdated(targetPos, Blocks.CHEST.defaultBlockState(), Blocks.CHEST.defaultBlockState(), 3);
-                            System.out.println("[FrogPixelSkyblock] Successfully transformed Vault into item chest at: " + targetPos);
+
+                            if (!verboseStructureConversionLogging) {
+                                System.out.println("[FrogPixelSkyblock] Successfully transformed Vault into item chest at: " + targetPos);
+                            }
                         }
                     }
                 } else {
@@ -266,11 +265,14 @@ public class SkyblockCleanUpQueue {
                         spawnerTile.setChanged();
 
                         level.sendBlockUpdated(targetPos, Blocks.SPAWNER.defaultBlockState(), Blocks.SPAWNER.defaultBlockState(), 3);
-                        System.out.println("[FrogPixelSkyblock] REPLACED Trial Spawner with " + chosenType.getDescription().getString() + " Spawner at: " + targetPos);
+                        if (!verboseStructureConversionLogging) {
+                            System.out.println("[FrogPixelSkyblock] REPLACED Trial Spawner with " + chosenType.getDescription().getString() + " Spawner at: " + targetPos);
+                        }
                     }
 
                     // Load from config, do we want a torch on these spawners?
-                    /* TEMP: TODO: add this to the config and load it */ boolean forceTorch = false;
+                    /* TEMP: TODO: add this to the config and load it */
+                    boolean forceTorch = false;
                     if (forceTorch) {
                         BlockPos torchPos = targetPos.above();
 

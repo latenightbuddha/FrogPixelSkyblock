@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
@@ -112,6 +113,8 @@ public class FrogPixelSkyblock implements ModInitializer {
 
 					movePlayerToDimension(player, ModDimensions.SKY.getLevel(player), new Vec3(0, 80.0, 0));
 				}
+
+
 		});
 
 		// Register the disconnection event
