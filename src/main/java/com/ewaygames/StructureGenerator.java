@@ -22,7 +22,7 @@ import java.util.Optional;
 
 public class StructureGenerator {
 
-    public static void spawnStructureNearSpawn(String file, ServerLevel level, BlockPos spawnPos, Rotation rotation) {
+    public static void spawnStructureNearSpawn(String file, ServerLevel level, BlockPos spawnCenter, Rotation rotation, int distanceOut) {
         File worldDir = level.getServer().getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toFile();
         File targetDest = new File(worldDir, "generated/minecraft/structures/" + file + ".nbt");
 
@@ -72,6 +72,7 @@ public class StructureGenerator {
             templateOpt = templateManager.get(structureLocation);
         }
 
+        // inside public static void spawnStructureNearSpawn(...)
         if (templateOpt.isPresent()) {
             StructureTemplate template = templateOpt.get();
 
@@ -82,18 +83,36 @@ public class StructureGenerator {
 
             settings.addProcessor(getMansionProcessor());
 
-            // Pull size attributes directly out of the loaded NBT structure tag template dynamically
+            // Original template boundaries
             int sizeX = template.getSize().getX();
             int sizeZ = template.getSize().getZ();
 
-            //Adjust these offsets to reposition the mansion relative to spawn Pos
-            BlockPos targetPlacementPos = new BlockPos(spawnPos.getX() - 40, spawnPos.getY() - 5, spawnPos.getZ() + 60);            template.placeInWorld(level, targetPlacementPos, targetPlacementPos, settings, level.getRandom(), 3);
+            int finalX = spawnCenter.getX();
+            int finalY = spawnCenter.getY() - 5; // Retains your custom height offset
+            int finalZ = spawnCenter.getZ();
 
-            //buildMansionFoundation(level, targetPlacementPos, template.getSize().getX(), template.getSize().getZ());
+            // Perfect Cardinal Grid Alignment Math
+            if (rotation == Rotation.NONE) { // NORTH side (Faces South, expands +X, +Z)
+                finalX -= (sizeX / 2);
+                finalZ -= (distanceOut + sizeZ);
+            }
+            else if (rotation == Rotation.CLOCKWISE_180) { // SOUTH side (Faces North, expands -X, -Z in world space due to 180 flip)
+                finalX += (sizeX / 2);
+                finalZ += distanceOut;
+            }
+            else if (rotation == Rotation.COUNTERCLOCKWISE_90) { // EAST side (Faces West, expands -Z, +X after rotation)
+                finalX += distanceOut;
+                finalZ += (sizeX / 2);
+            }
+            else if (rotation == Rotation.CLOCKWISE_90) { // WEST side (Faces East, expands +Z, -X after rotation)
+                finalX -= (distanceOut + sizeZ);
+                finalZ -= (sizeX / 2);
+            }
 
-            System.out.println("[FrogPixelSkyblock] Materialized a " + file + " at: " + targetPlacementPos);
-        } else {
-            System.err.println("[FrogPixelSkyblock] ERROR: Could not find, load, or parse the structure template!");
+            BlockPos targetPlacementPos = new BlockPos(finalX, finalY, finalZ);
+            template.placeInWorld(level, targetPlacementPos, targetPlacementPos, settings, level.getRandom(), 3);
+
+            System.out.println("[FrogPixelSkyblock] Materialized a " + file + " facing " + rotation.name() + " at: " + targetPlacementPos);
         }
     }
 
@@ -121,16 +140,4 @@ public class StructureGenerator {
             }
         };
     }
-
-    /*private static void buildMansionFoundation(ServerLevel level, BlockPos startPos, int widthX, int depthZ) {
-        BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
-        for (int x = 0; x < widthX; x++) {
-            for (int z = 0; z < depthZ; z++) {
-                if (x == 0 || x == widthX - 1 || z == 0 || z == depthZ - 1) {
-                    mutablePos.set(startPos.getX() + x, startPos.getY() - 1, startPos.getZ() + z);
-                    level.setBlock(mutablePos, Blocks.COBBLESTONE.defaultBlockState(), 3);
-                }
-            }
-        }
-    }*/
 }

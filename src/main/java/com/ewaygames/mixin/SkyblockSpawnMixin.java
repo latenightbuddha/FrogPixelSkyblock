@@ -140,49 +140,18 @@ public class SkyblockSpawnMixin {
                             }
 
                             try {
-                                net.minecraft.core.BlockPos spawnCenter = new net.minecraft.core.BlockPos(0, 70, 0);
+                                // The shared absolute center point of your skyblock spawn island platform
+                                BlockPos spawnCenter = new BlockPos(0, 65, 0);
+                                int openVoidGapDistance = 120; // Total blocks of empty void space desired between your island and the mansion wall
 
-                                // Estimate or dynamically get the width/length of your structure bounding box
-                                int sizeX = 60;
-                                int sizeZ = 60;
-                                int distanceOut = 80; // How many blocks of empty void you want between spawn and the mansion wall
-
-                                // NORTH: Faces South naturally. Pivot point stays top-left.
-                                net.minecraft.core.BlockPos northTarget = new net.minecraft.core.BlockPos(
-                                        spawnCenter.getX() - (sizeX / 2),
-                                        spawnCenter.getY() - 5,
-                                        spawnCenter.getZ() - distanceOut - sizeZ
-                                );
-
-                                // SOUTH: Rotated 180°. Flips the box completely.
-                                net.minecraft.core.BlockPos southTarget = new net.minecraft.core.BlockPos(
-                                        spawnCenter.getX() + (sizeX / 2),
-                                        spawnCenter.getY() - 5,
-                                        spawnCenter.getZ() + distanceOut + sizeZ
-                                );
-
-                                // EAST: Rotated 270° (Counter-clockwise 90). Sweeps the width into the Z axis.
-                                net.minecraft.core.BlockPos eastTarget  = new net.minecraft.core.BlockPos(
-                                        spawnCenter.getX() + distanceOut + sizeZ,
-                                        spawnCenter.getY() - 5,
-                                        spawnCenter.getZ() - (sizeX / 2)
-                                );
-
-                                // WEST: Rotated 90° (Clockwise 90).
-                                net.minecraft.core.BlockPos westTarget  = new net.minecraft.core.BlockPos(
-                                        spawnCenter.getX() - distanceOut - sizeZ,
-                                        spawnCenter.getY() - 5,
-                                        spawnCenter.getZ() + (sizeX / 2)
-                                );
-
-                                //TODO Fix the generation for these prefabs
-                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, northTarget, Rotation.CLOCKWISE_90);
-                                // StructureGenerator.spawnStructureNearSpawn("todo marine_temple", worldInstance, southTarget, Rotation.CLOCKWISE_180);
-                                // StructureGenerator.spawnStructureNearSpawn("todo sky_aircraft", worldInstance, eastTarget,  Rotation.COUNTERCLOCKWISE_90);
-                                // StructureGenerator.spawnStructureNearSpawn("todo unknown_prefab", worldInstance, westTarget,  Rotation.NONE);
+                                // Dynamically fires the automated alignment engine for each cardinal direction
+                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, net.minecraft.world.level.block.Rotation.NONE, openVoidGapDistance);                  // NORTH (Faces South naturally)
+                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, net.minecraft.world.level.block.Rotation.CLOCKWISE_180, openVoidGapDistance);          // SOUTH (Flips to face North)
+                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, net.minecraft.world.level.block.Rotation.COUNTERCLOCKWISE_90, openVoidGapDistance);  // EAST  (Flips to face West)
+                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, net.minecraft.world.level.block.Rotation.CLOCKWISE_90, openVoidGapDistance);         // WEST  (Flips to face East)
 
                             } catch (Exception e) {
-                                System.err.println("[FrogPixelSkyblock] Failed to generate the structure: " + e.getMessage());
+                                System.err.println("[FrogPixelSkyblock] Failed to generate prefab: " + e.getMessage());
                             }
                         }
 
