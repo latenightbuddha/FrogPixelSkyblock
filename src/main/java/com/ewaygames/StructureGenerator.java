@@ -1,6 +1,7 @@
 package com.ewaygames;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Vec3i;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
@@ -22,11 +23,11 @@ import java.util.Optional;
 
 public class StructureGenerator {
 
-    public static void spawnStructureNearSpawn(String file, ServerLevel level, BlockPos spawnCenter, Rotation rotation, int distanceOut) {
+    public static void spawnStructureNearSpawn(String file, ServerLevel level, BlockPos spawnCenter, Rotation rotation, Mirror mirror, int distanceOut, boolean setIgnoreEntities, boolean placeVisualMarkerAndLog) {
         File worldDir = level.getServer().getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toFile();
         File targetDest = new File(worldDir, "generated/minecraft/structures/" + file + ".nbt");
 
-        // 1. Extract the file if it doesn't exist
+        // 1. Extract the asset from the jar files if missing on the world disk space
         try {
             if (!targetDest.exists()) {
                 targetDest.getParentFile().mkdirs();
@@ -44,20 +45,17 @@ public class StructureGenerator {
             System.err.println("[FrogPixelSkyblock] Failed to write fallback asset mapping to world files: " + e.getMessage());
         }
 
-        // 2. LOAD THE STRUCTURE DIRECTLY VIA RAW NBT
+        // 2. Load the file template data from disk memory
         Optional<StructureTemplate> templateOpt = Optional.empty();
         try {
             if (targetDest.exists()) {
-                // Read the uncompressed NBT data directly from disk using NbtIo
                 net.minecraft.nbt.CompoundTag nbtCompound = net.minecraft.nbt.NbtIo.readCompressed(
                         targetDest.toPath(),
                         net.minecraft.nbt.NbtAccounter.unlimitedHeap()
                 );
 
-                // Create a blank structure template and populate it with the parsed NBT data
                 StructureTemplate template = new StructureTemplate();
                 template.load(level.holderLookup(net.minecraft.core.registries.Registries.BLOCK), nbtCompound);
-
                 templateOpt = Optional.of(template);
             }
         } catch (Exception e) {
@@ -65,58 +63,133 @@ public class StructureGenerator {
             e.printStackTrace();
         }
 
-        // Fallback to standard check if direct read failed
         if (templateOpt.isEmpty()) {
             StructureTemplateManager templateManager = level.getStructureManager();
             Identifier structureLocation = Identifier.fromNamespaceAndPath("minecraft", file);
             templateOpt = templateManager.get(structureLocation);
         }
 
-        // inside public static void spawnStructureNearSpawn(...)
         if (templateOpt.isPresent()) {
             StructureTemplate template = templateOpt.get();
+            Vec3i templateSize = template.getSize();
 
-            StructurePlaceSettings settings = new StructurePlaceSettings()
-                    .setMirror(Mirror.NONE)
-                    .setRotation(rotation)
-                    .setIgnoreEntities(false);
+            // Dynamically evaluate coordinates relative to the mixin's provided spawnCenter argument
+            int centralPlatformX = spawnCenter.getX(); // 0
+            int centralPlatformZ = spawnCenter.getZ(); // 0
+            int finalY = spawnCenter.getY() - 5;
 
-            settings.addProcessor(getMansionProcessor());
+            int sizeX = templateSize.getX(); // 63
+            int sizeZ = templateSize.getZ(); // 61
 
-            // Original template boundaries
-            int sizeX = template.getSize().getX();
-            int sizeZ = template.getSize().getZ();
+            int finalX = 0;
+            int finalZ = 0;
 
-            int finalX = spawnCenter.getX();
-            int finalY = spawnCenter.getY() - 5; // Retains your custom height offset
-            int finalZ = spawnCenter.getZ();
+            // 3. Pure Mathematical Grid Matrix Layout Calibration
+            // Bypasses intermediate engine translation bugs by offsetting the bounding hinges manually.
+            switch (rotation) {
+                case NONE: // NORTH (Red Beacon)
+                    // Expands East (+X) and South (+Z). Anchor goes North (-Z).
+                    finalX = centralPlatformX - (sizeX / 2);
+                    finalZ = centralPlatformZ - distanceOut - sizeZ;
+                    break;
 
-            // Perfect Cardinal Grid Alignment Math
-            if (rotation == Rotation.NONE) { // NORTH side (Faces South, expands +X, +Z)
-                finalX -= (sizeX / 2);
-                finalZ -= (distanceOut + sizeZ);
-            }
-            else if (rotation == Rotation.CLOCKWISE_180) { // SOUTH side (Faces North, expands -X, -Z in world space due to 180 flip)
-                finalX += (sizeX / 2);
-                finalZ += distanceOut;
-            }
-            else if (rotation == Rotation.COUNTERCLOCKWISE_90) { // EAST side (Faces West, expands -Z, +X after rotation)
-                finalX += distanceOut;
-                finalZ += (sizeX / 2);
-            }
-            else if (rotation == Rotation.CLOCKWISE_90) { // WEST side (Faces East, expands +Z, -X after rotation)
-                finalX -= (distanceOut + sizeZ);
-                finalZ -= (sizeX / 2);
+                case CLOCKWISE_90: // WEST (Yellow Beacon)
+                    // Expands West (-X) and South (+Z). Anchor goes West (-X).
+                    finalX = centralPlatformX - distanceOut - sizeX;
+                    finalZ = centralPlatformZ - (sizeZ / 2);
+                    break;
+
+                case CLOCKWISE_180: // SOUTH (Blue Beacon)
+                    // Expands West (-X) and North (-Z).
+                    // Add back size dimensions to shift its backward structural expansion safely away from spawn!
+                    finalX = centralPlatformX - (sizeX / 2) + sizeX;
+                    finalZ = centralPlatformZ + distanceOut + sizeZ;
+                    break;
+
+                case COUNTERCLOCKWISE_90: // EAST (Green Beacon)
+                    // Expands East (+X) and North (-Z). Dimensions swap values on 90 degree flips.
+                    // Add back size dimensions to compensate for backward bounding box growth!
+                    finalX = centralPlatformX + distanceOut + sizeZ;
+                    finalZ = centralPlatformZ - (sizeX / 2) + sizeX;
+                    break;
             }
 
             BlockPos targetPlacementPos = new BlockPos(finalX, finalY, finalZ);
-            template.placeInWorld(level, targetPlacementPos, targetPlacementPos, settings, level.getRandom(), 3);
+
+            // Establish the placement settings while explicitly resetting pivot hinge drift logic
+            StructurePlaceSettings placementData = new StructurePlaceSettings()
+                    .setRotation(rotation)
+                    .setMirror(mirror)
+                    .setIgnoreEntities(setIgnoreEntities)
+                    .setRotationPivot(BlockPos.ZERO);
+
+            if(placeVisualMarkerAndLog) {
+
+                // --- DEBUG LOGGING ---
+                System.out.println("========================================");
+                System.out.println("[STRUCTURE DEBUG] Direction: " + rotation.name());
+                System.out.println("[STRUCTURE DEBUG] Mansion Size: X=" + sizeX + ", Z=" + sizeZ);
+                System.out.println("[STRUCTURE DEBUG] CALCULATED PLACEMENT CORNER: " + targetPlacementPos);
+                System.out.println("========================================");
+
+                // Spawns diagnostic directional tracking beacon lines
+                placeVisualMarker(level, targetPlacementPos, rotation);
+            }
+
+            // 4. Run direct engine block placement
+            template.placeInWorld(level, targetPlacementPos, targetPlacementPos, placementData, level.getRandom(), 3);
 
             System.out.println("[FrogPixelSkyblock] Materialized a " + file + " facing " + rotation.name() + " at: " + targetPlacementPos);
         }
     }
 
-    private static StructureProcessor getMansionProcessor() {
+    /**
+     * Spawns a diagnostic beacon platform and a floating colored beam at the structure's origin corner.
+     */
+    private static void placeVisualMarker(ServerLevel level, BlockPos pos, Rotation rotation) {
+        BlockState glassColor;
+        BlockState solidMarker;
+
+        switch (rotation) {
+            case NONE:
+                glassColor = Blocks.RED_STAINED_GLASS.defaultBlockState();
+                solidMarker = Blocks.RED_WOOL.defaultBlockState();
+                break;
+            case CLOCKWISE_180:
+                glassColor = Blocks.BLUE_STAINED_GLASS.defaultBlockState();
+                solidMarker = Blocks.BLUE_WOOL.defaultBlockState();
+                break;
+            case COUNTERCLOCKWISE_90:
+                glassColor = Blocks.GREEN_STAINED_GLASS.defaultBlockState();
+                solidMarker = Blocks.GREEN_WOOL.defaultBlockState();
+                break;
+            case CLOCKWISE_90:
+                glassColor = Blocks.YELLOW_STAINED_GLASS.defaultBlockState();
+                solidMarker = Blocks.YELLOW_WOOL.defaultBlockState();
+                break;
+            default:
+                glassColor = Blocks.WHITE_STAINED_GLASS.defaultBlockState();
+                solidMarker = Blocks.IRON_BLOCK.defaultBlockState();
+        }
+
+        // Build beacon pad structure at y=50 through the void space
+        BlockPos basePos = new BlockPos(pos.getX(), 50, pos.getZ());
+        for (int xOffset = -1; xOffset <= 1; xOffset++) {
+            for (int zOffset = -1; zOffset <= 1; zOffset++) {
+                level.setBlockAndUpdate(basePos.offset(xOffset, 0, zOffset), Blocks.IRON_BLOCK.defaultBlockState());
+            }
+        }
+        level.setBlockAndUpdate(basePos.above(), Blocks.BEACON.defaultBlockState());
+        level.setBlockAndUpdate(basePos.above(2), glassColor);
+
+        // Place a structural verification pillar spanning y=60 to y=90
+        for (int y = 60; y <= 90; y++) {
+            BlockPos linePos = new BlockPos(pos.getX(), y, pos.getZ());
+            level.setBlockAndUpdate(linePos, (y % 2 == 0) ? solidMarker : Blocks.SEA_LANTERN.defaultBlockState());
+        }
+    }
+
+    private static StructureProcessor getStructureProcessor() {
         return new StructureProcessor() {
             @Override
             public StructureTemplate.StructureBlockInfo processBlock(

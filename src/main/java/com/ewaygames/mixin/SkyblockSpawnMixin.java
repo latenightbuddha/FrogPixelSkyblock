@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
@@ -142,13 +143,14 @@ public class SkyblockSpawnMixin {
                             try {
                                 // The shared absolute center point of your skyblock spawn island platform
                                 BlockPos spawnCenter = new BlockPos(0, 65, 0);
-                                int openVoidGapDistance = 120; // Total blocks of empty void space desired between your island and the mansion wall
 
                                 // Dynamically fires the automated alignment engine for each cardinal direction
-                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, net.minecraft.world.level.block.Rotation.NONE, openVoidGapDistance);                  // NORTH (Faces South naturally)
-                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, net.minecraft.world.level.block.Rotation.CLOCKWISE_180, openVoidGapDistance);          // SOUTH (Flips to face North)
-                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, net.minecraft.world.level.block.Rotation.COUNTERCLOCKWISE_90, openVoidGapDistance);  // EAST  (Flips to face West)
-                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, net.minecraft.world.level.block.Rotation.CLOCKWISE_90, openVoidGapDistance);         // WEST  (Flips to face East)
+                                //TODO move this to the config
+                                boolean placeVisualMarkerAndLog = false;
+                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, Rotation.NONE, Mirror.NONE, 46, true, placeVisualMarkerAndLog);        // NORTH (Faces South naturally)
+                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, Rotation.CLOCKWISE_180, Mirror.NONE, 46, true, placeVisualMarkerAndLog);        // SOUTH (Flips to face North)
+                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, Rotation.COUNTERCLOCKWISE_90, Mirror.NONE, 46, true, placeVisualMarkerAndLog);        // EAST  (Flips to face West)
+                                StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, Rotation.CLOCKWISE_90, Mirror.NONE, 64, true, placeVisualMarkerAndLog);        // WEST  (Flips to face East)
 
                             } catch (Exception e) {
                                 System.err.println("[FrogPixelSkyblock] Failed to generate prefab: " + e.getMessage());
