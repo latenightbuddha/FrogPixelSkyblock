@@ -24,7 +24,7 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import static com.ewaygames.FrogPixelSkyblock_Config.verboseStructureConversionLogging;
+import static com.ewaygames.FrogPixelSkyblock_Config.*;
 
 public class SkyblockCleanUpQueue {
 
@@ -111,8 +111,6 @@ public class SkyblockCleanUpQueue {
                     BlockEntity chestTile = level.getBlockEntity(targetPos);
 
                     // Load from config, do we want full loot in the trial chests or normal chance?
-                    /* TEMP: TODO: add this to the config and load it */
-                    boolean fullLootReward = true;
                     if (fullLootReward) {
                         if (chestTile instanceof ChestBlockEntity chest) {
                             // Determine a random number of items to put in this specific chest (e.g., 3 to 7 slots populated)
@@ -271,8 +269,6 @@ public class SkyblockCleanUpQueue {
                     }
 
                     // Load from config, do we want a torch on these spawners?
-                    /* TEMP: TODO: add this to the config and load it */
-                    boolean forceTorch = false;
                     if (forceTorch) {
                         BlockPos torchPos = targetPos.above();
 

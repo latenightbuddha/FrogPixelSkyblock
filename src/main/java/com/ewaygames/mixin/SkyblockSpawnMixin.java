@@ -21,6 +21,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import static com.ewaygames.FrogPixelSkyblock_Config.placeVisualMarkerAndLog;
+
 @Mixin(targets = "net.minecraft.server.level.ServerLevel")
 public class SkyblockSpawnMixin {
 
@@ -145,8 +147,6 @@ public class SkyblockSpawnMixin {
                                 BlockPos spawnCenter = new BlockPos(0, 65, 0);
 
                                 // Dynamically fires the automated alignment engine for each cardinal direction
-                                //TODO move this to the config
-                                boolean placeVisualMarkerAndLog = false;
                                 StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, Rotation.NONE, Mirror.NONE, 46, true, placeVisualMarkerAndLog);        // NORTH (Faces South naturally)
                                 StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, Rotation.CLOCKWISE_180, Mirror.NONE, 46, true, placeVisualMarkerAndLog);        // SOUTH (Flips to face North)
                                 StructureGenerator.spawnStructureNearSpawn("woodland_mansion", worldInstance, spawnCenter, Rotation.COUNTERCLOCKWISE_90, Mirror.NONE, 46, true, placeVisualMarkerAndLog);        // EAST  (Flips to face West)
