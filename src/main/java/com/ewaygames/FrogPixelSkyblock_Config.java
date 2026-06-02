@@ -8,7 +8,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 public class FrogPixelSkyblock_Config {
-    private static final int CURRENT_CONFIG_VERSION = 0;
+    private static final int CURRENT_CONFIG_VERSION = 1;
 
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("FrogPixelSkyblock.toml");
 
@@ -33,7 +33,7 @@ public class FrogPixelSkyblock_Config {
     public static boolean enable_void_loop = true;
 
     // Enables verbose console logging whenever structure block swapping or data conversion occurs.
-    public static boolean verboseStructureConversionLogging = true;
+    public static boolean verboseStructureConversionLogging = false;
 
     // The distance (in blocks) around the drop point within which lost items can be recovered.
     public static int default_recovery_radius = 16;
@@ -59,6 +59,9 @@ public class FrogPixelSkyblock_Config {
 
     // Switches the mode to a higher difficulty where void falls are fatal and nearby dropped items cannot be recovered.
     public static boolean hard_difficulty = false;
+
+    // Forces strict adherence to the server's globally configured difficulty parameters, preventing user overrides.
+    public static boolean enforce_server_settings = false;
 
     public static void loadConfig() {
         System.out.println("[FrogPixelSkyblock] Initializing Skyblock Configuration");
@@ -174,6 +177,9 @@ public class FrogPixelSkyblock_Config {
                             if (key.equals("hard_difficulty") || key.equals("harddifficulty")) {
                                 hard_difficulty = Boolean.parseBoolean(value);
                             }
+                            if (key.equals("enforce_server_settings") || key.equals("enforceserversettings")) {
+                                enforce_server_settings = Boolean.parseBoolean(value);
+                            }
                             break;
                     }
                 }
@@ -224,7 +230,10 @@ public class FrogPixelSkyblock_Config {
                 "# WARNING: DO NOT CHANGE THE CONFIG_VERSION VALUE BELOW.",
                 "# If the configuration structure modifications alter across updates,",
                 "# the plugin will handle recreating your values automatically.",
+                "# Also NO, Changing this number will NOT revert to an older config format",
                 "config_version = " + CURRENT_CONFIG_VERSION,
+                "# ------------------------------------------------------------------------",
+                "",
                 "",
                 "[spawn]",
                 "# The exact X world coordinate for the island spawn location.",
@@ -241,11 +250,6 @@ public class FrogPixelSkyblock_Config {
                 "# safely back to the configured spawn island coordinates.",
                 "enable_void_loop = " + enable_void_loop,
                 "",
-                "# Outputs detailed troubleshooting messages to the server console",
-                "# whenever structure assets trigger block data conversions,",
-                "# such as turning vaults into crates or trial spawners into vanilla ones.",
-                "verbose_structure_logging = " + verboseStructureConversionLogging,
-                "",
                 "# The boundary distance radius (in blocks) around a player's drop point",
                 "# within which dropped items can be collected or interacted with by recovery utilities.",
                 "default_recovery_radius = " + default_recovery_radius,
@@ -258,6 +262,11 @@ public class FrogPixelSkyblock_Config {
                 "# Toggles full crate loot table rewards and custom item drops",
                 "# instead of half filled crates within newly generated world structures.",
                 "full_loot_reward = " + fullLootReward,
+                "",
+                "# Outputs detailed troubleshooting messages to the server console",
+                "# whenever structure assets trigger block data conversions,",
+                "# such as turning vaults into crates or trial spawners into vanilla ones.",
+                "verbose_structure_logging = " + verboseStructureConversionLogging,
                 "",
                 "# Forces the placement of torches on top of the vanilla spawners",
                 "# inside the trial dungeon to make it a reward rather than a challenge.",
@@ -274,7 +283,12 @@ public class FrogPixelSkyblock_Config {
                 "# Enables advanced difficulty behavior. When true, falling into the void",
                 "# is fatal (normal damage rules apply) and items dropped inside the void",
                 "# recovery radius cannot be restored using recovery command shortcuts.",
-                "hard_difficulty = " + hard_difficulty
+                "hard_difficulty = " + hard_difficulty,
+                "",
+                "# Forces strict server settings. If enabled, players trying to manually",
+                "# change local configuration shortcuts or difficulty parameters via commands",
+                "# will be blocked and notified that the server is enforcing these properties.",
+                "enforce_server_settings = " + enforce_server_settings
         );
 
         Files.write(CONFIG_PATH, defaults);
