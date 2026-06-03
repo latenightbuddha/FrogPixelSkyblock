@@ -1,0 +1,8 @@
+{
+  "pack": {
+    "pack_format": 105,
+    "min_format": 105,
+    "max_format": 110,
+    "description": "FrogPixel Skyblock Logic Engine"
+  }
+}
