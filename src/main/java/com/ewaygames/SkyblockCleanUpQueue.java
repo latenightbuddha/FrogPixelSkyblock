@@ -13,10 +13,10 @@ import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BarrelBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.ChestBlockEntity;
-import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 
 import java.util.Arrays;
 import java.util.List;
@@ -106,27 +106,29 @@ public class SkyblockCleanUpQueue {
             if (level.hasChunkAt(targetPos)) {
                 if (!task.isTrialSpawner()) {
 
-                    // REPLACE VAULT WITH CHEST
-                    level.setBlock(targetPos, Blocks.CHEST.defaultBlockState(), 3);
-                    BlockEntity chestTile = level.getBlockEntity(targetPos);
+                    // CLEAR THE OLD BLOCK ENTITY (VAULT) CACHE FIRST
+                    level.removeBlockEntity(targetPos);
 
-                    // Load from config, do we want full loot in the trial chests or normal chance?
+                    // REPLACE VAULT WITH BARREL
+                    level.setBlock(targetPos, Blocks.BARREL.defaultBlockState(), 3);
+                    BlockEntity barrelTile = level.getBlockEntity(targetPos);
+
+                    // Load from config, do we want full loot in the trial barrels or normal chance?
                     if (fullLootReward) {
-                        if (chestTile instanceof ChestBlockEntity chest) {
-                            // Determine a random number of items to put in this specific chest (e.g., 3 to 7 slots populated)
+                        if (barrelTile instanceof BarrelBlockEntity barrel) {
+                            // Determine a random number of items to put in this specific barrel (e.g., 3 to 7 slots populated)
                             int itemsToPlace = 3 + RANDOM.nextInt(5);
 
                             boolean hasDiscAlready = false;
 
-                            for (int o = 0; o < chest.getContainerSize(); o++) {
-                                if (DISC_LOOKUP.contains(chest.getItem(o).getItem())) {
+                            for (int o = 0; o < barrel.getContainerSize(); o++) {
+                                if (DISC_LOOKUP.contains(barrel.getItem(o).getItem())) {
                                     hasDiscAlready = true;
                                     break;
                                 }
                             }
 
                             for (int count = 0; count < itemsToPlace; count++) {
-
                                 Item randomItem;
 
                                 if (!hasDiscAlready && RANDOM.nextInt(4) == 0) {
@@ -144,62 +146,55 @@ public class SkyblockCleanUpQueue {
                                 } else if (randomItem == Items.BREAD || randomItem == Items.WHEAT) {
                                     stackSize = 1 + RANDOM.nextInt(3); // 1-3 items
                                 } else if (randomItem == Items.DRAGON_BREATH) {
-                                    stackSize = 1 + RANDOM.nextInt(3);
+                                    stackSize = 1 + RANDOM.nextInt(3); // 1-3 items
                                 } else if (randomItem == Items.DISC_FRAGMENT_5) {
-                                    stackSize = 1 + RANDOM.nextInt(10);
+                                    stackSize = 1 + RANDOM.nextInt(10); // 1-10 items
                                 } else if (randomItem == Items.BREEZE_ROD) {
-                                    stackSize = 1 + RANDOM.nextInt(2);
+                                    stackSize = 1 + RANDOM.nextInt(2); // 1-2 items
                                 }
 
                                 if (DISC_LOOKUP.contains(randomItem)) {
-                                    stackSize = 1;
+                                    stackSize = 1;  // 1 disc
                                 }
 
-                                // Generate the itemstack
                                 ItemStack lootStack = new ItemStack(randomItem, stackSize);
 
-                                // If the item rolled is a potion variant, inject a useful buff data component
                                 if (randomItem == Items.POTION || randomItem == Items.SPLASH_POTION || randomItem == Items.LINGERING_POTION) {
                                     Holder<Potion> randomBuff = HELPFUL_POTIONS.get(RANDOM.nextInt(HELPFUL_POTIONS.size()));
                                     lootStack.set(DataComponents.POTION_CONTENTS, new PotionContents(randomBuff));
                                 }
 
-                                // Choose a random available slot inside the chest container boundary (0 to 26)
-                                int randomSlot = RANDOM.nextInt(chest.getContainerSize());
+                                // Choose a random available slot inside the barrel container boundary (0 to 26)
+                                int randomSlot = RANDOM.nextInt(barrel.getContainerSize());
 
-
-                                // If the slot is empty or occupied, place the stack inside safely
-                                if (chest.getItem(randomSlot).isEmpty()) {
-                                    chest.setItem(randomSlot, lootStack);
+                                if (barrel.getItem(randomSlot).isEmpty()) {
+                                    barrel.setItem(randomSlot, lootStack);
                                 } else {
-                                    chest.removeItemNoUpdate(randomSlot);
-                                    chest.setItem(randomSlot, lootStack);
+                                    barrel.removeItemNoUpdate(randomSlot);
+                                    barrel.setItem(randomSlot, lootStack);
                                 }
-
                             }
 
-                            chest.setChanged();
-                            level.sendBlockUpdated(targetPos, Blocks.CHEST.defaultBlockState(), Blocks.CHEST.defaultBlockState(), 3);
+                            barrel.setChanged();
+                            level.sendBlockUpdated(targetPos, Blocks.BARREL.defaultBlockState(), Blocks.BARREL.defaultBlockState(), 3);
 
-                            if (!verboseStructureConversionLogging) {
-                                System.out.println("[FrogPixelSkyblock] Successfully transformed Vault into item chest at: " + targetPos);
+                            if (verboseStructureConversionLogging) {
+                                System.out.println("[FrogPixelSkyblock] Successfully transformed Vault into item barrel at: " + targetPos);
                             }
                         }
                     } else {
-                        // if full loot in the trial replaced chests (aka fullLootReward) was set to false
-                        if (chestTile instanceof ChestBlockEntity chest) {
+                        // if full loot in the trial replaced barrels (aka fullLootReward) was set to false
+                        if (barrelTile instanceof BarrelBlockEntity barrel) {
                             // Clear out any residual structure data or old items to guarantee a blank slate
-                            chest.clearContent();
+                            barrel.clearContent();
 
                             // Exact target bound: 3 to 8 unique slots max (3 + rolls 0-5 = 3 to 8)
                             int itemsToPlace = 3 + RANDOM.nextInt(6);
                             int itemsPlaced = 0;
-
                             boolean hasDiscAlready = false;
 
                             // Keep rolling until we satisfy our target item slots cleanly
                             while (itemsPlaced < itemsToPlace) {
-
                                 Item randomItem;
                                 if (!hasDiscAlready && RANDOM.nextInt(4) == 0) {
                                     randomItem = DUNGEON_DISC_POOL[RANDOM.nextInt(DUNGEON_DISC_POOL.length)];
@@ -209,21 +204,21 @@ public class SkyblockCleanUpQueue {
 
                                 int stackSize = 1;
                                 if (randomItem == Items.IRON_INGOT || randomItem == Items.GOLD_INGOT || randomItem == Items.COAL) {
-                                    stackSize = 1 + RANDOM.nextInt(4);
+                                    stackSize = 1 + RANDOM.nextInt(4);  // 1-4 items
                                 } else if (randomItem == Items.GUNPOWDER || randomItem == Items.STRING || randomItem == Items.ROTTEN_FLESH) {
-                                    stackSize = 1 + RANDOM.nextInt(5);
+                                    stackSize = 1 + RANDOM.nextInt(5);  // 1-5 items
                                 } else if (randomItem == Items.BREAD || randomItem == Items.WHEAT) {
-                                    stackSize = 1 + RANDOM.nextInt(3);
+                                    stackSize = 1 + RANDOM.nextInt(3); // 1-3 items
                                 } else if (randomItem == Items.DRAGON_BREATH) {
-                                    stackSize = 1 + RANDOM.nextInt(3);
+                                    stackSize = 1 + RANDOM.nextInt(3); // 1-3 items
                                 } else if (randomItem == Items.DISC_FRAGMENT_5) {
-                                    stackSize = 1 + RANDOM.nextInt(10);
+                                    stackSize = 1 + RANDOM.nextInt(10); // 1-10 items
                                 } else if (randomItem == Items.BREEZE_ROD) {
-                                    stackSize = 1 + RANDOM.nextInt(2);
+                                    stackSize = 1 + RANDOM.nextInt(2); // 1-2 items
                                 }
 
                                 if (DISC_LOOKUP.contains(randomItem)) {
-                                    stackSize = 1;
+                                    stackSize = 1; // 1 disc
                                 }
 
                                 ItemStack lootStack = new ItemStack(randomItem, stackSize);
@@ -234,51 +229,57 @@ public class SkyblockCleanUpQueue {
                                 }
 
                                 // Pick a random index across the 27 available chest slots
-                                int randomSlot = RANDOM.nextInt(chest.getContainerSize());
+                                int randomSlot = RANDOM.nextInt(barrel.getContainerSize());
 
-                                // 4. ONLY drop the item in if the slot is completely empty!
-                                if (chest.getItem(randomSlot).isEmpty()) {
-                                    chest.setItem(randomSlot, lootStack);
+                                // ONLY drop the item in if the slot is completely empty!
+                                if (barrel.getItem(randomSlot).isEmpty()) {
+                                    barrel.setItem(randomSlot, lootStack);
                                     itemsPlaced++; // Only advance toward completing the loop on a successful placement
                                 }
-                                // If the slot was already occupied, the while loop will naturally try a new slot on the next spin
                             }
 
-                            chest.setChanged();
-                            level.sendBlockUpdated(targetPos, Blocks.CHEST.defaultBlockState(), Blocks.CHEST.defaultBlockState(), 3);
+                            barrel.setChanged();
+                            level.sendBlockUpdated(targetPos, Blocks.BARREL.defaultBlockState(), Blocks.BARREL.defaultBlockState(), 3);
 
-                            if (!verboseStructureConversionLogging) {
-                                System.out.println("[FrogPixelSkyblock] Successfully transformed Vault into item chest at: " + targetPos);
+                            if (verboseStructureConversionLogging) {
+                                System.out.println("[FrogPixelSkyblock] Successfully transformed Vault into item barrel at: " + targetPos);
                             }
                         }
                     }
                 } else {
-                    // REPLACE TRIAL SPAWNER WITH VANILLA BREAKABLE ONE
-                    level.setBlock(targetPos, Blocks.SPAWNER.defaultBlockState(), 3);
-                    BlockEntity newBlockEntity = level.getBlockEntity(targetPos);
+                    // Check what block is currently at the target position first
+                    if (level.getBlockState(targetPos).is(Blocks.TRIAL_SPAWNER)) {
 
-                    if (newBlockEntity instanceof SpawnerBlockEntity spawnerTile) {
-                        EntityType<?> chosenType = HOSTILE_MOBS[RANDOM.nextInt(HOSTILE_MOBS.length)];
-                        spawnerTile.getSpawner().setEntityId(chosenType, level, level.getRandom(), targetPos);
-                        spawnerTile.setChanged();
+                        // CLEAR THE OLD BLOCK ENTITY (TRIAL SPAWNER) CACHE FIRST
+                        level.removeBlockEntity(targetPos);
 
-                        level.sendBlockUpdated(targetPos, Blocks.SPAWNER.defaultBlockState(), Blocks.SPAWNER.defaultBlockState(), 3);
-                        if (!verboseStructureConversionLogging) {
-                            System.out.println("[FrogPixelSkyblock] REPLACED Trial Spawner with " + chosenType.getDescription().getString() + " Spawner at: " + targetPos);
+                        // REPLACE TRIAL SPAWNER WITH VANILLA BREAKABLE ONE
+                        level.setBlock(targetPos, Blocks.SPAWNER.defaultBlockState(), 3);
+                        BlockEntity newBlockEntity = level.getBlockEntity(targetPos);
+
+                        if (newBlockEntity instanceof SpawnerBlockEntity spawnerTile) {
+                            EntityType<?> chosenType = HOSTILE_MOBS[RANDOM.nextInt(HOSTILE_MOBS.length)];
+                            spawnerTile.getSpawner().setEntityId(chosenType, level, level.getRandom(), targetPos);
+                            spawnerTile.setChanged();
+
+                            level.sendBlockUpdated(targetPos, Blocks.SPAWNER.defaultBlockState(), Blocks.SPAWNER.defaultBlockState(), 3);
+
+                            if (verboseStructureConversionLogging) {
+                                System.out.println("[FrogPixelSkyblock] REPLACED Trial Spawner with " + chosenType.getDescription().getString() + " Spawner at: " + targetPos);
+                            }
                         }
-                    }
 
-                    // Load from config, do we want a torch on these spawners?
-                    if (forceTorch) {
-                        BlockPos torchPos = targetPos.above();
+                        // Load from config, do we want a torch on these spawners?
+                        if (forceTorch) {
+                            BlockPos torchPos = targetPos.above();
 
-                        // Ensure we only place the torch if the space above is empty air
-                        if (level.isEmptyBlock(torchPos)) {
-                            level.setBlock(torchPos, Blocks.TORCH.defaultBlockState(), 3);
+                            // Ensure we only place the torch if the space above is empty air
+                            if (level.isEmptyBlock(torchPos)) {
+                                level.setBlock(torchPos, Blocks.TORCH.defaultBlockState(), 3);
+                            }
                         }
                     }
                 }
-
             } else {
                 TASK_QUEUE.add(task);
             }
