@@ -24,6 +24,8 @@ import org.spongepowered.asm.mixin.Unique;
 
 import java.util.*;
 
+import static com.ewaygames.FrogPixelSkyblock_Config.force_sky_dimension;
+
 public class FrogPixelSkyblock implements ModInitializer {
 	public static final String MOD_ID = "frogpixelskyblock";
 
@@ -40,8 +42,7 @@ public class FrogPixelSkyblock implements ModInitializer {
 	public void onInitialize() {
 
 		// Triggers when running under strict dedicated production server conditions
-		if (FabricLoader.getInstance().getEnvironmentType() == net.fabricmc.api.EnvType.SERVER)
-		{
+		if (FabricLoader.getInstance().getEnvironmentType() == net.fabricmc.api.EnvType.SERVER) {
 			System.out.println("[FrogPixelSkyblock] Initializing Skyblock Configuration");
 			FrogPixelSkyblock_Config.loadConfig();
 		}
@@ -104,17 +105,16 @@ public class FrogPixelSkyblock implements ModInitializer {
 
 		// Process the queue at the end of every tick
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
-
+			if (force_sky_dimension) {
 				// Create a temporary list for players ready to be teleported
 				List<UUID> readyToTeleport = new ArrayList<>();
 
 				for (UUID uuid : readyToTeleport) {
-					ServerPlayer player = server.getPlayerList().getPlayer(uuid);
 
+					ServerPlayer player = server.getPlayerList().getPlayer(uuid);
 					movePlayerToDimension(player, ModDimensions.SKY.getLevel(player), new Vec3(0, 80.0, 0));
 				}
-
-
+			}
 		});
 
 		// Register the disconnection event
@@ -154,9 +154,26 @@ public class FrogPixelSkyblock implements ModInitializer {
 
 				return false;
 			}
+			if (!force_sky_dimension) {
+				if (rawMessage.equalsIgnoreCase("!overworld")) {
+
+					try {
+						Vec3 targetLocation = new Vec3(0.5, 65.0, 0.5);
+						player.sendSystemMessage(Component.literal("§aTeleporting to the Overworld..."));
+						// Use your verified, cross-world dimension routing system to teleport them
+						FrogPixelSkyblock.movePlayerToDimension(player, ModDimensions.OVERWORLD.getLevel(player), targetLocation);
+
+					} catch (Exception e) {
+						System.err.println("[FrogPixelSkyblock] Failed to process !overworld chat command: " + e.getMessage());
+						e.printStackTrace();
+					}
+
+					return false;
+				}
+			}
+
 			return true;
 		});
-
 
 
 		ServerTickEvents.START_SERVER_TICK.register(server -> {
@@ -165,8 +182,7 @@ public class FrogPixelSkyblock implements ModInitializer {
 
 		ServerTickEvents.END_SERVER_TICK.register(server ->
 		{
-			for (ServerLevel level : server.getAllLevels())
-			{
+			for (ServerLevel level : server.getAllLevels()) {
 				SkyblockCleanUpQueue.processQueue(level);
 			}
 		});
@@ -176,7 +192,6 @@ public class FrogPixelSkyblock implements ModInitializer {
 	public static void queueDelayedTeleport(ServerPlayer player, int ticks) {
 		delayedTeleports.add(new DelayedTeleport(player, ticks));
 	}
-
 
 
 	// Small container class to hold our delay data
