@@ -8,7 +8,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 public class FrogPixelSkyblock_Config {
-    private static final int CURRENT_CONFIG_VERSION = 1;
+    private static final int CURRENT_CONFIG_VERSION = 2;
 
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("FrogPixelSkyblock.toml");
 
@@ -62,6 +62,9 @@ public class FrogPixelSkyblock_Config {
 
     // Forces strict adherence to the server's globally configured difficulty parameters, preventing user overrides.
     public static boolean enforce_server_settings = false;
+
+    // Forces players to be locked into or automatically sent to the sky block dimension environment.
+    public static boolean force_sky_dimension = true;
 
     public static void loadConfig() {
         System.out.println("[FrogPixelSkyblock] Initializing Skyblock Configuration");
@@ -140,9 +143,6 @@ public class FrogPixelSkyblock_Config {
                             if (key.equals("enable_void_loop")) {
                                 enable_void_loop = Boolean.parseBoolean(value);
                             }
-                            if (key.equals("verbose_structure_logging") || key.equals("verbosestructureconversionlogging")) {
-                                verboseStructureConversionLogging = Boolean.parseBoolean(value);
-                            }
                             if (key.equals("default_recovery_radius") || key.equals("defaultrecoveryradius")) {
                                 try {
                                     default_recovery_radius = Integer.parseInt(value);
@@ -158,6 +158,9 @@ public class FrogPixelSkyblock_Config {
                             }
                             if (key.equals("full_loot_reward") || key.equals("fulllootreward")) {
                                 fullLootReward = Boolean.parseBoolean(value);
+                            }
+                            if (key.equals("verbose_structure_logging") || key.equals("verbosestructureconversionlogging")) {
+                                verboseStructureConversionLogging = Boolean.parseBoolean(value);
                             }
                             if (key.equals("force_torch") || key.equals("forcetorch")) {
                                 forceTorch = Boolean.parseBoolean(value);
@@ -179,6 +182,9 @@ public class FrogPixelSkyblock_Config {
                             }
                             if (key.equals("enforce_server_settings") || key.equals("enforceserversettings")) {
                                 enforce_server_settings = Boolean.parseBoolean(value);
+                            }
+                            if (key.equals("force_sky_dimension") || key.equals("forceskydimension")) {
+                                force_sky_dimension = Boolean.parseBoolean(value);
                             }
                             break;
                     }
@@ -288,7 +294,11 @@ public class FrogPixelSkyblock_Config {
                 "# Forces strict server settings. If enabled, players trying to manually",
                 "# change local configuration shortcuts or difficulty parameters via commands",
                 "# will be blocked and notified that the server is enforcing these properties.",
-                "enforce_server_settings = " + enforce_server_settings
+                "enforce_server_settings = " + enforce_server_settings,
+                "",
+                "# Determines whether players are forced into the custom sky dimension",
+                "# environment upon joining or shifting game modes.",
+                "force_sky_dimension = " + force_sky_dimension
         );
 
         Files.write(CONFIG_PATH, defaults);
