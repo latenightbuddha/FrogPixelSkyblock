@@ -17,7 +17,11 @@
       "minecraft:custom_model_data": {
         "value": 26001
       },
-      "minecraft:item_name": "{\"text\":\"String Sieve Mesh\",\"color\":\"white\",\"italic\":false}"
+      "minecraft:item_name": {
+        "text": "String Sieve Mesh",
+        "color": "white",
+        "italic": false
+      }
     }
   }
 }

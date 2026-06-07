@@ -46,6 +46,20 @@ Write-Host "Calculating SHA-1 Checksum..." -ForegroundColor Yellow
 $FileHash = (Get-FileHash -Path $TargetZipPath -Algorithm SHA1).Hash.ToLower()
 Write-Host "New SHA-1 Hash: $FileHash" -ForegroundColor Magenta
 
+# Define the deployment targets
+$DefaultTarget = "$env:APPDATA\.minecraft\resourcepacks\FrogPixelSkyblockAssets.zip"
+$PrismTarget   = "$env:APPDATA\PrismLauncher\instances\26.1.2\minecraft\resourcepacks\FrogPixelSkyblockAssets.zip"
+
+# Copy to the default client path if needed
+Copy-Item -Path $TargetZipPath -Destination $DefaultTarget -Force
+
+# Copy directly into your active Prism Launcher instance
+if (Test-Path (Split-Path $PrismTarget -Parent)) {
+    Copy-Item -Path $TargetZipPath -Destination $PrismTarget -Force
+    Write-Host "Successfully deployed asset pack directly to Prism Launcher instance!" -ForegroundColor Green
+} else {
+    Write-Warning "Prism Launcher instance directory not found. Asset pack not copied there."
+}
 
 # ==========================================
 # 3. UPDATE LOCAL SERVER PROPERTIES AUTOMATICALLY
@@ -53,38 +67,43 @@ Write-Host "New SHA-1 Hash: $FileHash" -ForegroundColor Magenta
 if (Test-Path $ServerProps) {
     Write-Host "Updating server.properties configuration..." -ForegroundColor Yellow
     
-    # Format the local file URI path to point directly to the built zip file
-    $RawPath = $TargetZipPath.Replace("\", "/")
-    $LocalPackUrl = "file:///$RawPath"
-    $PromptJson = '{"text":"Loading local FrogPixel Skyblock Dev Assets...","color":"green"}'
+    # Format the local file URI path safely using native .NET absolute URI escaping
+    #$LocalPackUrl = ([System.Uri]$TargetZipPath).AbsoluteUri
+    $LocalPackUrl = "file://localhost/$($TargetZipPath.Replace('\', '/'))"
     
-    # Static UUID ensuring a seamless workspace state across clone branches
+    # Using a completely plain string text here prevents any JSON parser from running, 
+    # which eliminates the MalformedJsonException entirely!
+    $PlainPrompt  = "Loading local FrogPixel Skyblock Dev Assets..."
     $StaticPackId = "7261ba74-f049-32f4-9d0a-3c494f8b6e1d"
 
-    # Read existing properties file contents
-    $Content = Get-Content $ServerProps
-    
-    # Clean up or update the target configuration values dynamically
-    $PropertiesToUpdate = @{
-        "resource-pack-sha1="    = "resource-pack-sha1=$FileHash"
-        "resource-pack="         = "resource-pack=$LocalPackUrl"
-        "require-resource-pack=" = "require-resource-pack=true"
-        "resource-pack-prompt="   = "resource-pack-prompt=$PromptJson"
-        "resource-pack-id="       = "resource-pack-id=$StaticPackId"
-    }
+    # Explicitly force UTF-8 decoding when reading the file lines
+    $Lines = Get-Content -Path $ServerProps -Encoding UTF8
 
-    foreach ($Key in $PropertiesToUpdate.Keys) {
-        if ($Content -match [regex]::Escape($Key)) {
-            $Content = $Content -replace "$([regex]::Escape($Key)).*", $PropertiesToUpdate[$Key]
-        } else {
-            $Content += $PropertiesToUpdate[$Key]
+    # Filter out ANY old line containing resource-pack settings to completely clear the slate
+    $CleanedLines = @()
+    foreach ($Line in $Lines) {
+        if ($Line -notmatch "resource-pack" -and $Line -notmatch "require-resource-pack") {
+            $CleanedLines += $Line
         }
     }
+
+    # Append fresh, plain-text configurations to the end of the array
+    $CleanedLines += "require-resource-pack=true"
+    $CleanedLines += "resource-pack=$LocalPackUrl"
+    $CleanedLines += "resource-pack-id=$StaticPackId"
+    #$CleanedLines += "resource-pack-prompt=$PlainPrompt"
+    $CleanedLines += "resource-pack-sha1=$FileHash"
+
+    # Strip out empty line breaks
+    $CleanedLines = $CleanedLines | Where-Object { $_ -ne "" }
+
+    # Save file back using clean UTF8 (No BOM)
+    $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllLines($ServerProps, $CleanedLines, $Utf8NoBom)
     
-    Set-Content -Path $ServerProps -Value $Content
-    Write-Host "server.properties successfully synchronized with Static UUID!" -ForegroundColor Green
+    Write-Host "server.properties successfully synchronized and scrubbed!" -ForegroundColor Green
 } else {
     Write-Warning "server.properties not found at $ServerProps. Skipping file hash injection."
 }
 
-Write-Host "Deployment complete! In-game, type /reload to refresh changes." -ForegroundColor Green
+Write-Host "Deployment complete! In-game, type /reload to refresh changes..." -ForegroundColor Green
