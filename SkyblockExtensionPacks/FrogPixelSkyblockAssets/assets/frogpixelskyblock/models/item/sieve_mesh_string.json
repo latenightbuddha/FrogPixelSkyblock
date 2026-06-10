@@ -1,6 +1,6 @@
 {
-  "parent": "minecraft:item/generated",
-  "textures": {
-    "layer0": "frogpixelskyblock:item/sieve_mesh_string"
-  }
+     "parent": "minecraft:item/generated",
+     "textures": {
+       "layer0": "frogpixelskyblock:item/sieve_mesh_string"
+     }
 }
